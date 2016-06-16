@@ -17,19 +17,13 @@ package org.xbib.elasticsearch.index.analysis.skos;
 
 import java.io.IOException;
 import java.io.StringReader;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Set;
-import java.util.Stack;
-import java.util.TreeSet;
+import java.util.*;
 
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.TokenFilter;
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.payloads.PayloadHelper;
-import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
-import org.apache.lucene.analysis.tokenattributes.PayloadAttribute;
-import org.apache.lucene.analysis.tokenattributes.PositionIncrementAttribute;
+import org.apache.lucene.analysis.tokenattributes.*;
 import org.apache.lucene.util.AttributeSource;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.CharsRef;
@@ -49,12 +43,12 @@ public abstract class AbstractSKOSFilter extends TokenFilter {
     protected SKOSEngine engine;
     // the skos types to expand to
     protected Set<SKOSType> types;
-    // provides access to the the term attributes
-    protected AttributeSource.State current;
     // the term text (propagated to the index)
     protected final CharTermAttribute termAtt;
     // the token position relative to the previous token (propagated)
     protected final PositionIncrementAttribute posIncrAtt;
+    // the token position relative to the previous token (propagated)
+    protected final OffsetAttribute offsetAtt;
     // the binary payload attached to the indexed term (propagated to the index)
     protected final PayloadAttribute payloadAtt;
     // the SKOS-specific attribute attached to a term
@@ -82,6 +76,7 @@ public abstract class AbstractSKOSFilter extends TokenFilter {
         this.posIncrAtt = addAttribute(PositionIncrementAttribute.class);
         this.payloadAtt = addAttribute(PayloadAttribute.class);
         this.skosAtt = addAttribute(SKOSTypeAttribute.class);
+        this.offsetAtt = addAttribute(OffsetAttribute.class);
     }
 
     /**
@@ -98,24 +93,23 @@ public abstract class AbstractSKOSFilter extends TokenFilter {
      * @throws IOException if analyzer failed
      */
     protected void processTermOnStack() throws IOException {
-        ExpandedTerm expandedTerm = termStack.pop();
+        // dont use termStack.pop() to handle correct order
+        ExpandedTerm expandedTerm = termStack.firstElement();
+        termStack.remove(0);
         String term = expandedTerm.getTerm();
         SKOSType termType = expandedTerm.getTermType();
-        String sTerm;
-        try {
-            CharsRefBuilder builder = new CharsRefBuilder();
-            sTerm = analyze(analyzer, term, builder).toString();
-        } catch (IllegalArgumentException e) {
-            // skip this term
-            return;
-        }
+        String sTerm = term;
         // copies the values of all attribute implementations from this state into
         // the implementations of the target stream
-        restoreState(current);
+        restoreState(expandedTerm.getState());
         // adds the expanded term to the term buffer
         termAtt.setEmpty().append(sTerm);
+        // change endoffset in needed
+        if(expandedTerm.getEndOffset() > 0) {
+            offsetAtt.setOffset(offsetAtt.startOffset(), expandedTerm.getEndOffset());
+        }
         // set position increment to zero to put multiple terms into the same position
-        posIncrAtt.setPositionIncrement(0);
+        posIncrAtt.setPositionIncrement(expandedTerm.getPosIncr());
         // sets the type of the expanded term (pref, alt, broader, narrower, etc.)
         skosAtt.setSkosType(termType);
         // converts the SKOS Attribute to a payload, which is propagated to the index
@@ -123,35 +117,16 @@ public abstract class AbstractSKOSFilter extends TokenFilter {
         payloadAtt.setPayload(new BytesRef(bytes));
     }
 
-    public static CharsRef analyze(Analyzer analyzer, String text, CharsRefBuilder buffer)
-            throws IOException {
-        TokenStream ts = analyzer.tokenStream("", new StringReader(text));
-        CharTermAttribute termAtt = ts.addAttribute(CharTermAttribute.class);
-        ts.reset();
-        while (ts.incrementToken()) {
-            int length = termAtt.length();
-            if (length == 0) {
-                throw new IllegalArgumentException("term: " + text + " analyzed to a zero-length token");
-            }
-            if (buffer.length() > 0) {
-                buffer.append(' ');
-            }
-            buffer.append(termAtt.buffer(), 0, length);
-        }
-        ts.end();
-        ts.close();
-        if (buffer.length() == 0) {
-            throw new IllegalArgumentException("term: " + text + " was completely eliminated by analyzer");
-        }
-        return buffer.get();
-    }
-
-    protected void pushLabelsToStack(List<String> labels, SKOSType type) {
+    protected void pushLabelsToStack(List<String> labels, SKOSType type, State state, int endOffset) {
         if (labels != null) {
             for (String label : labels) {
-                termStack.push(new ExpandedTerm(label, type));
+                pushLabelToStack(label, type, state, endOffset, 0);
             }
         }
+    }
+
+    protected void pushLabelToStack(String label, SKOSType type, State state, int endOffset, int posIncr) {
+        termStack.push(new ExpandedTerm(label, type, state, endOffset, posIncr));
     }
 
     /**
@@ -161,18 +136,22 @@ public abstract class AbstractSKOSFilter extends TokenFilter {
 
         private final String term;
         private final SKOSType termType;
+        private final State state;
+        private final int endOffset;
+        private final int posIncr;
 
-        protected ExpandedTerm(String term, SKOSType termType) {
+        protected ExpandedTerm(String term, SKOSType termType, State state, int endOffset, int posIncr) {
             this.term = term;
             this.termType = termType;
+            this.state = state;
+            this.endOffset = endOffset;
+            this.posIncr = posIncr;
         }
 
-        protected String getTerm() {
-            return this.term;
-        }
-
-        protected SKOSType getTermType() {
-            return this.termType;
-        }
+        protected String getTerm() { return this.term; }
+        protected SKOSType getTermType() { return this.termType; }
+        protected State getState() { return this.state; }
+        protected int getEndOffset() { return this.endOffset; }
+        protected int getPosIncr() { return this.posIncr; }
     }
 }

@@ -16,6 +16,7 @@
 package org.xbib.elasticsearch.index.analysis.skos;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
@@ -23,6 +24,7 @@ import java.util.Queue;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.TokenStream;
 
+import org.apache.lucene.util.AttributeSource;
 import org.xbib.elasticsearch.index.analysis.skos.engine.SKOSEngine;
 import org.xbib.elasticsearch.index.analysis.skos.SKOSTypeAttribute.SKOSType;
 
@@ -65,34 +67,38 @@ public final class SKOSLabelFilter extends AbstractSKOSFilter {
      */
     @Override
     public boolean incrementToken() throws IOException {
-        // there are expanded terms for the given token
+        boolean next;
+        while((next = input.incrementToken()) || !buffer.isEmpty()) {
+            if(!next || buffer.size() == bufferSize) {
+                addAliasesToStack();
+                buffer.remove();
+            }
+            if(next) {
+                buffer.add(input.captureState());
+            }
+        }
         if (termStack.size() > 0) {
             processTermOnStack();
             return true;
         }
-        while (buffer.size() < bufferSize && input.incrementToken()) {
-            buffer.add(input.captureState());
-        }
-        if (buffer.isEmpty()) {
-            return false;
-        }
-        restoreState(buffer.peek());
-        // check whether there are expanded terms for a given token
-        if (addAliasesToStack()) {
-            // if yes, capture the state of all attributes
-            current = captureState();
-        }
-        buffer.remove();
-        return true;
+        return false;
     }
 
+    /**
+     * @return
+     * @throws IOException
+     */
     private boolean addAliasesToStack() throws IOException {
+        State entered = captureState();
+        restoreState(buffer.peek());
         for (int i = buffer.size(); i > 0; i--) {
-            String inputTokens = bufferToString(i);
-            if (addTermsToStack(inputTokens)) {
-                break;
-            }
+            BufferString inputTokens = bufferToString(i);
+            addConceptsToStack(inputTokens);
+//            if (addConceptsToStack(inputTokens)) {
+//                break;
+//            }
         }
+        restoreState(entered);
         return !termStack.isEmpty();
     }
 
@@ -102,18 +108,20 @@ public final class SKOSLabelFilter extends AbstractSKOSFilter {
      * @param noTokens the number of tokens
      * @return the concatenated token string
      */
-    private String bufferToString(int noTokens) {
+    private BufferString bufferToString(int noTokens) {
         State entered = captureState();
+        int endOffset = 0;
         State[] bufferedStates = buffer.toArray(new State[buffer.size()]);
         StringBuilder builder = new StringBuilder();
         builder.append(termAtt.toString());
         restoreState(bufferedStates[0]);
         for (int i = 1; i < noTokens; i++) {
             restoreState(bufferedStates[i]);
+            endOffset = offsetAtt.endOffset();
             builder.append(" ").append(termAtt.toString());
         }
         restoreState(entered);
-        return builder.toString();
+        return new BufferString(builder.toString(), entered, endOffset);
     }
 
     /**
@@ -122,10 +130,15 @@ public final class SKOSLabelFilter extends AbstractSKOSFilter {
      * @param term the given term
      * @return true if term stack is not empty
      */
-    public boolean addTermsToStack(String term) throws IOException {
-        List<String> conceptURIs = engine.getConcepts(term);
+    public boolean addConceptsToStack(BufferString term) throws IOException {
+        List<String> conceptURIs = engine.getConcepts(term.getText());
         for (String conceptURI : conceptURIs) {
-            if (types.contains(SKOSType.PREF)) {
+
+            pushLabelToStack(conceptURI, SKOSType.PREF, term.getState(), term.getEndOffset(), 1);
+            pushLabelsToStack(engine.getBroaderConcepts(conceptURI), SKOSType.BROADER, term.getState(), term.getEndOffset());
+            pushLabelsToStack(engine.getBroaderTransitiveConcepts(conceptURI), SKOSType.BROADERTRANSITIVE, term.getState(), term.getEndOffset());
+
+            /*if (types.contains(SKOSType.PREF)) {
                 pushLabelsToStack(engine.getPrefLabels(conceptURI), SKOSType.PREF);
             }
             if (types.contains(SKOSType.ALT)) {
@@ -145,9 +158,34 @@ public final class SKOSLabelFilter extends AbstractSKOSFilter {
             }
             if (types.contains(SKOSType.NARROWERTRANSITIVE)) {
                 pushLabelsToStack(engine.getNarrowerTransitiveLabels(conceptURI), SKOSType.NARROWERTRANSITIVE);
-            }
+            }*/
         }
         return !termStack.isEmpty();
     }
 
+    /**
+     * Helper class for capturing buffer string and states
+     */
+    protected static class BufferString {
+
+        private final State state;
+        private final int endOffset;
+        private final String text;
+
+        protected BufferString(String text, State state, int endOffset) {
+            this.text = text;
+            this.state = state;
+            this.endOffset = endOffset;
+        }
+
+        protected String getText() {
+            return this.text;
+        }
+        protected State getState() {
+            return this.state;
+        }
+        protected int getEndOffset() {
+            return this.endOffset;
+        }
+    }
 }

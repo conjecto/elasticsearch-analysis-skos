@@ -55,10 +55,7 @@ public final class SKOSURIFilter extends AbstractSKOSFilter {
             return false;
         }
         /* check whether there are expanded terms for a given token */
-        if (addTermsToStack(termAtt.toString())) {
-            /* if yes, capture the state of all attributes */
-            current = captureState();
-        }
+        addTermsToStack(termAtt.toString());
         return true;
     }
 
@@ -68,23 +65,25 @@ public final class SKOSURIFilter extends AbstractSKOSFilter {
      * @return true if term stack is not empty
      */
     public boolean addTermsToStack(String term) throws IOException {
+        State state = captureState();
+
         if (types.contains(SKOSType.PREF)) {
-            pushLabelsToStack(engine.getPrefLabels(term), SKOSType.PREF);
+            pushLabelsToStack(engine.getPrefLabels(term), SKOSType.PREF, state, 0);
         }
         if (types.contains(SKOSType.ALT)) {
-            pushLabelsToStack(engine.getAltLabels(term), SKOSType.ALT);
+            pushLabelsToStack(engine.getAltLabels(term), SKOSType.ALT, state, 0);
         }
         if (types.contains(SKOSType.BROADER)) {
-            pushLabelsToStack(engine.getBroaderLabels(term), SKOSType.BROADER);
+            pushLabelsToStack(engine.getBroaderLabels(term), SKOSType.BROADER, state, 0);
         }
         if (types.contains(SKOSType.BROADERTRANSITIVE)) {
-            pushLabelsToStack(engine.getBroaderTransitiveLabels(term), SKOSType.BROADERTRANSITIVE);
+            pushLabelsToStack(engine.getBroaderTransitiveLabels(term), SKOSType.BROADERTRANSITIVE, state, 0);
         }
         if (types.contains(SKOSType.NARROWER)) {
-            pushLabelsToStack(engine.getNarrowerLabels(term), SKOSType.NARROWER);
+            pushLabelsToStack(engine.getNarrowerLabels(term), SKOSType.NARROWER, state, 0);
         }
         if (types.contains(SKOSType.NARROWERTRANSITIVE)) {
-            pushLabelsToStack(engine.getNarrowerTransitiveLabels(term), SKOSType.NARROWERTRANSITIVE);
+            pushLabelsToStack(engine.getNarrowerTransitiveLabels(term), SKOSType.NARROWERTRANSITIVE, state, 0);
         }
         return !termStack.isEmpty();
     }

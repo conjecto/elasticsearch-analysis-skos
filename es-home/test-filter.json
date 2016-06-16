@@ -1,0 +1,34 @@
+{
+  "settings": {
+    "index": {
+      "analysis": {
+        "filter": {
+          "skosfilter": {
+            "type": "skos",
+            "indexName": "ukat",
+            "skosFile": "es-home\\skos.n3",
+            "expansionType": "URI"
+          }
+        },
+        "analyzer": {
+          "skos": {
+            "type": "custom",
+            "tokenizer": "keyword",
+            "filter": "skosfilter"
+          }
+        }
+      }
+    }
+  },
+  "mappings": {
+    "_default_": {
+      "properties": {
+        "subject": {
+          "type": "string",
+          "analyzer": "skos",
+          "search_analyzer": "standard"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,5 @@
+grant {
+      permission java.io.FilePermission "D:\\Workspaces\\Conjecto\\github\\elasticsearch-analysis-skos", "read";
+      permission java.io.FilePermission "es-home\\skos.n3", "read";
+      permission java.io.FilePermission "location-mapping.ttl", "read";
+};

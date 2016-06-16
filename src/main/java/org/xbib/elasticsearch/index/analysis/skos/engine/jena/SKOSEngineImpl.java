@@ -55,6 +55,7 @@ import org.elasticsearch.search.SearchHit;
 import org.xbib.elasticsearch.index.analysis.skos.engine.SKOSEngine;
 
 import static org.elasticsearch.common.xcontent.XContentFactory.jsonBuilder;
+import static org.elasticsearch.index.query.QueryBuilders.matchQuery;
 import static org.elasticsearch.index.query.QueryBuilders.termQuery;
 
 /**
@@ -252,9 +253,9 @@ public class SKOSEngineImpl implements SKOSEngine {
         String queryString = label.toLowerCase();
         QueryBuilder queryBuilder = QueryBuilders.disMaxQuery()
                 .tieBreaker(0.0f)
-                .add(termQuery(FIELD_PREF_LABEL, queryString))
-                .add(termQuery(FIELD_ALT_LABEL, queryString))
-                .add(termQuery(FIELD_HIDDEN_LABEL, queryString));
+                .add(matchQuery(FIELD_PREF_LABEL, queryString))
+                .add(matchQuery(FIELD_ALT_LABEL, queryString))
+                .add(matchQuery(FIELD_HIDDEN_LABEL, queryString));
         SearchRequestBuilder searchRequestBuilder = new SearchRequestBuilder(client, SearchAction.INSTANCE);
         SearchResponse searchResponse = searchRequestBuilder.setIndices(indexName)
                 .setQuery(queryBuilder)
@@ -356,7 +357,18 @@ public class SKOSEngineImpl implements SKOSEngine {
 
         CreateIndexRequestBuilder createIndexRequestBuilder = new CreateIndexRequestBuilder(client, CreateIndexAction.INSTANCE, indexName);
         Settings settings = Settings.builder()
-                .put("index.analysis.analyzer.default.type", "keyword")
+//                .put("index.analysis.analyzer.default.type", "keyword")
+                .put("index.analysis.filter.concatenate.type", "concatenate")
+                .put("index.analysis.filter.concatenate.token_separator", " ")
+                .put("index.analysis.filter.french_elision.type", "elision")
+                .put("index.analysis.filter.french_elision.articles_case", true)
+                .putArray("index.analysis.filter.french_elision.articles", "l", "m", "t", "qu", "n", "s", "j", "d", "c", "jusqu", "quoiqu", "lorsqu", "puisqu")
+                .put("index.analysis.filter.french_stop.type", "stop")
+                .put("index.analysis.filter.french_stop.stopwords", "_french_")
+                .put("index.analysis.filter.french_stemmer.type", "stemmer")
+                .put("index.analysis.filter.french_stemmer.language", "light_french")
+                .put("index.analysis.analyzer.default.tokenizer", "standard")
+                .putArray("index.analysis.analyzer.default.filter", "french_elision", "lowercase", "french_stop", "french_stemmer", "concatenate")
                 .build();
         try {
             createIndexRequestBuilder.setSettings(settings).execute().actionGet();

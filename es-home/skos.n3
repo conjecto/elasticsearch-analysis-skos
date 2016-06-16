@@ -4,20 +4,25 @@
 @prefix ukat:   <http://www.ukat.org.uk/thesaurus/concept/> .
 
 ukat:859 rdf:type skos:Concept ;
-        skos:prefLabel "Weapons" ;
-        skos:altLabel "Armaments" ;
-        skos:altLabel "Arms" ;
+        skos:prefLabel "Arme" ;
+        skos:altLabel "Armement" ;
         skos:broader ukat:5060 ;
         skos:narrower ukat:18874 ;
         skos:narrower ukat:7630 .
 
 ukat:5060 rdf:type skos:Concept;
-        skos:prefLabel "Military equipment";
+        skos:prefLabel "Équipement militaire";
         skos:altLabel "Defense equipment and supplies";
         skos:altLabel "Ordnance".
 
 ukat:18874 rdf:type skos:Concept;
-        skos:prefLabel "Ammunition".
+        skos:prefLabel "Munition".
 
 ukat:7630 rdf:type skos:Concept;
-        skos:prefLabel "Artillery".
+        skos:prefLabel "Artillerie".
+
+ukat:7631 rdf:type skos:Concept;
+        skos:prefLabel "Rénover".
+
+ukat:7632 rdf:type skos:Concept;
+        skos:prefLabel "Arme de guerre".

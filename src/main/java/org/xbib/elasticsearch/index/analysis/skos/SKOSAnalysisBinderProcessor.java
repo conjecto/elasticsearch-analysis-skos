@@ -8,6 +8,7 @@ public class SKOSAnalysisBinderProcessor extends AnalysisModule.AnalysisBinderPr
     @Override
     public void processTokenFilters(TokenFiltersBindings tokenFilterBindings) {
         tokenFilterBindings.processTokenFilter("skos", SKOSTokenFilterFactory.class);
+        tokenFilterBindings.processTokenFilter("concatenate", ConcatenateFilterFactory.class);
     }
 
 }

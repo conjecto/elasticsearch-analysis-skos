@@ -1,0 +1,22 @@
+{
+  "query":{
+    "bool":{
+      "must":[
+        {"term": {
+          "text.skos": "http://www.ukat.org.uk/thesaurus/concept/7633"
+        }},
+        {"match": {
+          "text":"soldier"
+        }}
+      ]
+    }
+  },
+  "highlight":{
+    "fields":{
+      "text":{
+        "matched_fields": ["text", "text.skos"],
+        "type" : "fvh"
+      }
+    }
+  }
+}

@@ -22,7 +22,12 @@ ukat:7630 rdf:type skos:Concept;
         skos:prefLabel "Artillerie".
 
 ukat:7631 rdf:type skos:Concept;
-        skos:prefLabel "Rénover".
+        skos:prefLabel "Installation".
 
 ukat:7632 rdf:type skos:Concept;
-        skos:prefLabel "Arme de guerre".
+        skos:prefLabel "Passerelle".
+
+ukat:7633 rdf:type skos:Concept;
+        skos:broader ukat:7632 ;
+        skos:prefLabel "Passerelle de franchissement".
+

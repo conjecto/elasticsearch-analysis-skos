@@ -23,12 +23,21 @@
           "skosfilter" : {
             "type": "skos",
             "indexName" : "ukat",
-            "skosFile": "es-home\\skos.n3",
+            "skosFile": "skos.n3",
             "expansionType": "LABEL"
           }
         },
         "analyzer": {
           "french": {
+            "tokenizer":  "standard",
+            "filter": [
+              "french_elision",
+              "lowercase",
+              "french_stop",
+              "french_stemmer"
+            ]
+          },
+          "skos": {
             "tokenizer":  "standard",
             "filter": [
               "french_elision",
@@ -45,9 +54,18 @@
   "mappings": {
     "_default_": {
       "properties": {
-        "subject": {
+        "text": {
           "type": "string",
-          "analyzer": "french"
+          "analyzer": "french",
+          "store": true,
+          "term_vector": "with_positions_offsets",
+          "fields": {
+            "skos": {
+              "type": "string",
+              "analyzer": "skos",
+              "term_vector": "with_positions_offsets"
+            }
+          }
         }
       }
     }

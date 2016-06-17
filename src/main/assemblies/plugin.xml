@@ -16,6 +16,7 @@
                 <exclude>org.apache.lucene:lucene-analyzers-common</exclude>
                 <exclude>log4j</exclude>
                 <exclude>org.slf4j:jcl-over-slf4j</exclude>
+                <exclude>net.java.dev.jna:jna</exclude>
             </excludes>
         </dependencySet>
     </dependencySets>

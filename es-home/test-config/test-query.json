@@ -2,11 +2,11 @@
   "query":{
     "bool":{
       "must":[
-        {"term": {
-          "text.skos": "http://www.ukat.org.uk/thesaurus/concept/7633"
+        {"query_string": {
+          "query": "text.skos:*"
         }},
-        {"match": {
-          "text":"soldier"
+        {"match_phrase": {
+          "text":"le roman d'amour"
         }}
       ]
     }
@@ -14,8 +14,14 @@
   "highlight":{
     "fields":{
       "text":{
-        "matched_fields": ["text", "text.skos"],
+        "pre_tags" : ["<keyword>"],
+        "post_tags" : ["</keyword>"],
         "type" : "fvh"
+      },
+      "text.skos":{
+        "pre_tags" : ["<skos>"],
+        "post_tags" : ["</skos>"],
+        "type" : "skos-fvh"
       }
     }
   }

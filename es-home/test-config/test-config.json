@@ -23,7 +23,7 @@
           "skosfilter" : {
             "type": "skos",
             "indexName" : "ukat",
-            "skosFile": "skos.n3",
+            "skosFile": "es-home\\skos.n3",
             "expansionType": "LABEL"
           }
         },
@@ -57,7 +57,6 @@
         "text": {
           "type": "string",
           "analyzer": "french",
-          "store": true,
           "term_vector": "with_positions_offsets",
           "fields": {
             "skos": {
